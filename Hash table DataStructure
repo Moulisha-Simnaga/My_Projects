@@ -1,0 +1,134 @@
+
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+struct Node {
+    string key;
+    string value;
+    Node* next;
+};
+
+class HashTable {
+private:
+    int size;
+    Node** table;
+
+public:
+    HashTable(int size) {
+        this->size = size;
+        table = new Node*[size];
+        for (int i = 0; i < size; i++) {
+            table[i] = nullptr;
+        }
+    }
+
+    ~HashTable() {
+        for (int i = 0; i < size; i++) {
+            Node* node = table[i];
+            while (node != nullptr) {
+                Node* next = node->next;
+                delete node;
+                node = next;
+            }
+        }
+        delete[] table;
+    }
+
+    int hashFunction(string key) {
+        int hash = 0;
+        for (char c : key) {
+            hash += c;
+        }
+        return hash % size;
+    }
+
+    void insert(string key, string value) {
+        int index = hashFunction(key);
+        if (table[index] == nullptr) {
+            table[index] = new Node();
+            table[index]->key = key;
+            table[index]->value = value;
+            table[index]->next = nullptr;
+        } else {
+            Node* node = table[index];
+            while (node->next != nullptr) {
+                if (node->key == key) {
+                    node->value = value;
+                    return;
+                }
+                node = node->next;
+            }
+            if (node->key == key) {
+                node->value = value;
+            } else {
+                node->next = new Node();
+                node->next->key = key;
+                node->next->value = value;
+                node->next->next = nullptr;
+            }
+        }
+    }
+
+    string search(string key) {
+        int index = hashFunction(key);
+        Node* node = table[index];
+        while (node != nullptr) {
+            if (node->key == key) {
+                return node->value;
+            }
+            node = node->next;
+        }
+        return "Key not found";
+    }
+
+    void remove(string key) {
+        int index = hashFunction(key);
+        Node* node = table[index];
+        Node* prev = nullptr;
+        while (node != nullptr) {
+            if (node->key == key) {
+                if (prev == nullptr) {
+                    table[index] = node->next;
+                } else {
+                    prev->next = node->next;
+                }
+                delete node;
+                return;
+            }
+            prev = node;
+            node = node->next;
+        }
+    }
+
+    void display() {
+        for (int i = 0; i < size; i++) {
+            Node* node = table[i];
+            while (node != nullptr) {
+                cout << "Key: " << node->key << ", Value: " << node->value << endl;
+                node = node->next;
+            }
+        }
+    }
+};
+
+int main() {
+    HashTable hashTable(10);
+
+    hashTable.insert("apple", "fruit");
+    hashTable.insert("banana", "fruit");
+    hashTable.insert("carrot", "vegetable");
+
+    cout << "Key-Value Pairs:" << endl;
+    hashTable.display();
+
+    cout << "Value for key 'banana': " << hashTable.search("banana") << endl;
+
+    hashTable.remove("carrot");
+
+    cout << "Updated Key-Value Pairs:" << endl;
+    hashTable.display();
+
+    return 0;
+}
