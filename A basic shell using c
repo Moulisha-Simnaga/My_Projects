@@ -1,0 +1,95 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <windows.h>
+#include <direct.h>
+
+#define MAX_COMMAND_LENGTH 1024
+#define MAX_ARGS 64
+
+void execute_command(char *command) {
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
+
+    if (!CreateProcess(NULL, command, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        printf("Error occurred while executing command\n");
+    } else {
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+}
+
+void navigate_directory(char *directory) {
+    if (_chdir(directory) != 0) {
+        printf("Error occurred while navigating to directory\n");
+    } else {
+        char current_dir[MAX_COMMAND_LENGTH];
+        if (_getcwd(current_dir, MAX_COMMAND_LENGTH) != NULL) {
+            printf("MyShell> %s\n", current_dir);
+        } else {
+            printf("Error occurred while getting current directory\n");
+        }
+    }
+}
+
+void list_files() {
+    WIN32_FIND_DATA find_data;
+    HANDLE h_find;
+
+    h_find = FindFirstFile("*", &find_data);
+    if (h_find != INVALID_HANDLE_VALUE) {
+        do {
+            printf("%s\n", find_data.cFileName);
+        } while (FindNextFile(h_find, &find_data));
+        FindClose(h_find);
+    } else {
+        printf("Error occurred while listing files\n");
+    }
+}
+
+int main() {
+    char command[MAX_COMMAND_LENGTH];
+    char *args[MAX_ARGS];
+    int num_args;
+
+    while (1) {
+        printf("MyShell> ");
+        fgets(command, MAX_COMMAND_LENGTH, stdin);
+        command[strcspn(command, "\n")] = 0; // Remove newline character
+
+        // Parse command into arguments
+        num_args = 0;
+        args[num_args] = strtok(command, " ");
+        while (args[num_args] != NULL) {
+            num_args++;
+            args[num_args] = strtok(NULL, " ");
+        }
+
+        // Check for empty command
+        if (num_args == 0) {
+            continue;
+        }
+
+        // Execute command
+        if (strcmp(args[0], "exit") == 0) {
+            break;
+        } else if (strcmp(args[0], "cd") == 0) {
+            if (num_args >= 2) {
+                navigate_directory(args[1]);
+            } else {
+                printf("Error: directory not specified\n");
+            }
+        } else if (strcmp(args[0], "dir") == 0) {
+            list_files();
+        } else {
+            execute_command(command);
+        }
+    }
+
+    return 0;
+}
